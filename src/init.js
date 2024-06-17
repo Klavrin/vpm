@@ -52,11 +52,8 @@ on the option selected.\
         .string('language')
         .describe('language', 'Generates a basic language package')
       options
-        .alias('c', 'convert')
-        .string('convert')
-        .describe('convert', 'Path or URL to TextMate bundle/theme to convert')
-      options.alias('h', 'help').describe('help', 'Print this usage message')
-      return options
+        .alias('h', 'help')
+        .describe('help', 'Print this usage message')
         .string('template')
         .describe('template', 'Path to the package or theme template')
     }
@@ -66,33 +63,25 @@ on the option selected.\
       const { callback } = options
       options = this.parseOptions(options.commandArgs)
       if ((options.argv.package != null ? options.argv.package.length : undefined) > 0) {
-        if (options.argv.convert) {
-          return this.convertPackage(options.argv.convert, options.argv.package, callback)
-        } else {
-          const packagePath = path.resolve(options.argv.package)
-          const syntax = options.argv.syntax || this.supportedSyntaxes[0]
-          if (!Array.from(this.supportedSyntaxes).includes(syntax)) {
-            return callback(
-              `You must specify one of ${this.supportedSyntaxes.join(
-                ', '
-              )} after the --syntax argument`
-            )
-          }
-          templatePath = this.getTemplatePath(options.argv, `package-${syntax}`)
-          this.generateFromTemplate(packagePath, templatePath)
-          return callback()
+        packagePath = path.resolve(options.argv.package)
+        const syntax = options.argv.syntax || this.supportedSyntaxes[0]
+        if (!Array.from(this.supportedSyntaxes).includes(syntax)) {
+          return callback(
+            `You must specify one of ${this.supportedSyntaxes.join(
+              ', '
+            )} after the --syntax argument`
+          )
         }
+        templatePath = this.getTemplatePath(options.argv, `package-${syntax}`)
+        this.generateFromTemplate(packagePath, templatePath)
+        return callback()
       } else if (
         (options.argv.theme != null ? options.argv.theme.length : undefined) > 0
       ) {
-        if (options.argv.convert) {
-          return this.convertTheme(options.argv.convert, options.argv.theme, callback)
-        } else {
-          const themePath = path.resolve(options.argv.theme)
-          templatePath = this.getTemplatePath(options.argv, 'theme')
-          this.generateFromTemplate(themePath, templatePath)
-          return callback()
-        }
+        const themePath = path.resolve(options.argv.theme)
+        templatePath = this.getTemplatePath(options.argv, 'theme')
+        this.generateFromTemplate(themePath, templatePath)
+        return callback()
       } else if (
         (options.argv.language != null ? options.argv.language.length : undefined) > 0
       ) {
@@ -111,48 +100,6 @@ on the option selected.\
           'You must specify either --package, --theme or --language to `apm init`'
         )
       }
-    }
-
-    convertPackage(sourcePath, destinationPath, callback) {
-      if (!destinationPath) {
-        callback('Specify directory to create package in using --package')
-        return
-      }
-
-      const PackageConverter = require('./package-converter')
-      const converter = new PackageConverter(sourcePath, destinationPath)
-      return converter.convert((error) => {
-        if (error != null) {
-          return callback(error)
-        } else {
-          destinationPath = path.resolve(destinationPath)
-          const templatePath = path.resolve(__dirname, '..', 'templates', 'bundle')
-          this.generateFromTemplate(destinationPath, templatePath)
-          return callback()
-        }
-      })
-    }
-
-    convertTheme(sourcePath, destinationPath, callback) {
-      if (!destinationPath) {
-        callback('Specify directory to create theme in using --theme')
-        return
-      }
-
-      const ThemeConverter = require('./theme-converter')
-      const converter = new ThemeConverter(sourcePath, destinationPath)
-      return converter.convert((error) => {
-        if (error != null) {
-          return callback(error)
-        } else {
-          destinationPath = path.resolve(destinationPath)
-          const templatePath = path.resolve(__dirname, '..', 'templates', 'theme')
-          this.generateFromTemplate(destinationPath, templatePath)
-          fs.removeSync(path.join(destinationPath, 'styles', 'colors.less'))
-          fs.removeSync(path.join(destinationPath, 'LICENSE.md'))
-          return callback()
-        }
-      })
     }
 
     generateFromTemplate(packagePath, templatePath, packageName) {
